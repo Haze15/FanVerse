@@ -157,7 +157,9 @@ struct GamesView: View {
 
     func card(_ g: Game) -> some View {
         let color = categoryColors[g.category] ?? .purple
-        return HStack(alignment: .top, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 0) {
+          PreviewBanner(link: g.url, height: 140)
+          HStack(alignment: .top, spacing: 12) {
             LogoView(game: g, color: color)
             VStack(alignment: .leading, spacing: 6) {
                 Text(g.name).font(.headline)
@@ -174,6 +176,7 @@ struct GamesView: View {
             Button { toggle(g) } label: {
                 Image(systemName: favs.contains(g.name) ? "star.fill" : "star").foregroundColor(.yellow)
             }.buttonStyle(.borderless)
+          }
         }
         .fvCard()
         .contextMenu {

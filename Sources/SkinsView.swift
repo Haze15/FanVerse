@@ -34,6 +34,8 @@ struct SkinsView: View {
 
     func row(_ s: SkinSource) -> some View {
         Button { Router.shared.open(s.url, folder: "Skins") } label: {
+          VStack(alignment: .leading, spacing: 0) {
+            PreviewBanner(link: s.url, height: 120)
             HStack(spacing: 12) {
                 IconTile(symbol: s.symbol, color: .fvPink, size: 42)
                 VStack(alignment: .leading, spacing: 3) {
@@ -46,7 +48,8 @@ struct SkinsView: View {
                 Image(systemName: "arrow.down.circle").font(.title3)
                     .foregroundColor(.fvPink)
             }
-            .fvCard()
+          }
+          .fvCard()
         }
         .buttonStyle(.plain)
     }

@@ -9,6 +9,11 @@ struct HomeView: View {
     @State private var showEmulators = false
 
     var iphoneGames: [Game] { allGames.filter(\.onIPhone) }
+    /// D'abord les jeux qui ont un site officiel (donc une image d'aperçu)
+    var featuredGames: [Game] {
+        Array((iphoneGames.filter { PreviewStore.canPreview($0.url) }
+               + iphoneGames.filter { !PreviewStore.canPreview($0.url) }).prefix(12))
+    }
 
     var hero: some View {
         ZStack(alignment: .bottomLeading) {
@@ -64,13 +69,22 @@ struct HomeView: View {
     func featuredCard(_ g: Game) -> some View {
         let color = categoryColors[g.category] ?? .purple
         return VStack(alignment: .leading, spacing: 8) {
-            LogoView(game: g, color: color)
+            ZStack(alignment: .bottomLeading) {
+                LinearGradient(colors: [color.opacity(0.55), color.opacity(0.2)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .frame(height: 84)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                PreviewBanner(link: g.url, height: 84, gap: 0)
+                LogoView(game: g, color: color)
+                    .scaleEffect(0.75, anchor: .bottomLeading)
+                    .padding(6)
+            }
             Text(g.name).font(.subheadline.weight(.bold)).lineLimit(2)
                 .multilineTextAlignment(.leading)
             FVTag(text: g.platform, color: color)
             Spacer(minLength: 0)
         }
-        .frame(width: 150, height: 150, alignment: .topLeading)
+        .frame(width: 170, height: 190, alignment: .topLeading)
         .padding(12)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -81,7 +95,7 @@ struct HomeView: View {
             SectionTitle(title: "À jouer sur iPhone", subtitle: "ROM hacks (via Delta) et jeux navigateur")
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(iphoneGames.prefix(12)) { g in
+                    ForEach(featuredGames) { g in
                         Button { Router.shared.open(g.url, folder: g.name) } label: { featuredCard(g) }
                             .buttonStyle(.plain)
                     }

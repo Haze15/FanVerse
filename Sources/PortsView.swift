@@ -44,7 +44,9 @@ struct PortsView: View {
     }
 
     func row(_ p: Port) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+          if p.url != padmintURL { PreviewBanner(link: p.url, height: 130) }
+          HStack(alignment: .top, spacing: 12) {
             IconTile(symbol: p.consoleSymbol, color: p.consoleColor)
             VStack(alignment: .leading, spacing: 6) {
                 Text(p.name).font(.headline)
@@ -65,6 +67,7 @@ struct PortsView: View {
                 .padding(.top, 2)
             }
             Spacer(minLength: 0)
+          }
         }
         .fvCard()
     }
