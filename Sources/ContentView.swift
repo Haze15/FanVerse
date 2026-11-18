@@ -1,23 +1,111 @@
 import SwiftUI
 
+let installCat = "📥 Installer"
+let frCat = "🇫🇷 FR"
+
 let categoryColors: [String: Color] = [
     "Pokémon": .red, "Sonic": .blue, "Mario": .orange,
     "Zelda": .green, "Undertale": .yellow,
     "Smash": .pink, "Metroid": .teal, "Kirby": .mint,
 ]
+let categorySymbols: [String: String] = [
+    "Pokémon": "circle.lefthalf.filled", "Sonic": "hare.fill", "Mario": "star.circle.fill",
+    "Zelda": "shield.fill", "Undertale": "heart.fill", "Smash": "bolt.fill",
+    "Metroid": "scope", "Kirby": "cloud.fill",
+]
+
+struct LogoView: View {
+    let game: Game
+    let color: Color
+
+    var fallback: some View {
+        Image(systemName: categorySymbols[game.category] ?? "gamecontroller.fill")
+            .font(.title2).foregroundColor(color)
+    }
+
+    var body: some View {
+        Group {
+            if let u = game.logoURL {
+                AsyncImage(url: u) { phase in
+                    if let img = phase.image { img.resizable().scaledToFit().padding(6) }
+                    else { fallback }
+                }
+            } else { fallback }
+        }
+        .frame(width: 48, height: 48)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+    }
+}
+
+struct LinkSheet: View {
+    let game: Game
+    let onSave: (String) -> Void
+    @State private var text: String
+    @Environment(\.dismiss) private var dismiss
+
+    init(game: Game, initial: String, onSave: @escaping (String) -> Void) {
+        self.game = game
+        self.onSave = onSave
+        _text = State(initialValue: initial)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text(game.name),
+                        footer: Text("Colle un lien direct vers le fichier (.zip, .gba, .nds, .ips, .bps…) fourni par le créateur du jeu. Laisse vide pour retirer le lien.")) {
+                    TextField("https://…", text: $text)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
+                        .autocorrectionDisabled()
+                }
+            }
+            .navigationTitle("Lien de téléchargement")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Enregistrer") { onSave(text); dismiss() } }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
 
 struct ContentView: View {
     @State private var search = ""
     @State private var category = "Tous"
+    @State private var linkGame: Game?
     @AppStorage("favs") private var favsRaw = ""
+    @AppStorage("customDL") private var customRaw = "{}"
     @StateObject private var dm = DownloadManager()
 
     var favs: Set<String> { Set(favsRaw.split(separator: "|").map(String.init)) }
-    var categories: [String] { ["Tous", "⭐️"] + Array(Set(allGames.map(\.category))).sorted() }
+    var custom: [String: String] {
+        (try? JSONDecoder().decode([String: String].self, from: Data(customRaw.utf8))) ?? [:]
+    }
+    var categories: [String] {
+        ["Tous", "⭐️", installCat, frCat] + Array(Set(allGames.map(\.category))).sorted()
+    }
+
+    func dlURL(_ g: Game) -> String? { custom[g.name] ?? g.dl }
+
+    func setCustom(_ name: String, _ url: String) {
+        var d = custom
+        d[name] = url.isEmpty ? nil : url
+        if let data = try? JSONEncoder().encode(d), let s = String(data: data, encoding: .utf8) { customRaw = s }
+    }
 
     var filtered: [Game] {
         allGames.filter { g in
-            let okCat = category == "Tous" || (category == "⭐️" ? favs.contains(g.name) : g.category == category)
+            let okCat: Bool
+            switch category {
+            case "Tous": okCat = true
+            case "⭐️": okCat = favs.contains(g.name)
+            case installCat: okCat = dlURL(g) != nil || dm.localFile(for: g) != nil
+            case frCat: okCat = g.fr
+            default: okCat = g.category == category
+            }
             let okSearch = search.isEmpty || g.name.localizedCaseInsensitiveContains(search)
             return okCat && okSearch
         }
@@ -30,32 +118,50 @@ struct ContentView: View {
     }
 
     @ViewBuilder func actions(_ g: Game) -> some View {
-        HStack(spacing: 18) {
-            if let u = URL(string: g.url) {
-                Link(destination: u) { Label("Site", systemImage: "safari") }
-            }
-            if g.dl != nil {
-                if let p = dm.progress[g.name] {
-                    ProgressView(value: p).frame(width: 80)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 18) {
+                if let u = URL(string: g.url) {
+                    Link(destination: u) { Label("Site", systemImage: "safari") }
+                }
+                if dm.progress[g.name] != nil {
+                    Button(role: .destructive) { dm.cancel(g) } label: { Label("Annuler", systemImage: "xmark.circle") }
                 } else if let file = dm.localFile(for: g) {
                     ShareLink(item: file) { Label("Ouvrir", systemImage: "square.and.arrow.up") }
                     Button(role: .destructive) { dm.delete(g) } label: { Image(systemName: "trash") }
+                } else if let s = dlURL(g) {
+                    Button { dm.start(g, from: s) } label: { Label("Installer", systemImage: "arrow.down.circle.fill") }
                 } else {
-                    Button { dm.start(g) } label: { Label("Télécharger", systemImage: "arrow.down.circle.fill") }
+                    Button { linkGame = g } label: { Label("Lien", systemImage: "link.badge.plus") }
                 }
             }
-        }.font(.subheadline.weight(.semibold)).buttonStyle(.borderless)
+            if let p = dm.progress[g.name] {
+                VStack(alignment: .leading, spacing: 4) {
+                    ProgressView(value: p)
+                    Text("\(Int(p * 100)) %  •  \(dm.sizeText[g.name] ?? "")")
+                        .font(.caption2).foregroundColor(.secondary)
+                }
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .buttonStyle(.borderless)
     }
 
     func card(_ g: Game) -> some View {
         let color = categoryColors[g.category] ?? .purple
         return HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 5)
+            LogoView(game: g, color: color)
             VStack(alignment: .leading, spacing: 6) {
                 Text(g.name).font(.headline)
-                Text(g.platform).font(.caption2.weight(.bold))
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(color.opacity(0.18)).clipShape(Capsule())
+                HStack(spacing: 6) {
+                    Text(g.platform).font(.caption2.weight(.bold))
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(color.opacity(0.18)).clipShape(Capsule())
+                    if g.fr {
+                        Text("🇫🇷 FR").font(.caption2.weight(.bold))
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(Color.blue.opacity(0.18)).clipShape(Capsule())
+                    }
+                }
                 Text(g.desc).font(.subheadline).foregroundColor(.secondary)
                 actions(g).padding(.top, 2)
             }
@@ -67,6 +173,15 @@ struct ContentView: View {
         .padding(14)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .contextMenu {
+            Button { linkGame = g } label: { Label("Modifier le lien de téléchargement", systemImage: "link") }
+        }
+    }
+
+    var emptyText: String {
+        category == installCat
+            ? "Rien à installer pour l'instant.\nDans « Tous », touche « Lien » sur un jeu et colle son lien de téléchargement direct."
+            : "Aucun jeu"
     }
 
     var body: some View {
@@ -88,7 +203,10 @@ struct ContentView: View {
                     LazyVStack(spacing: 12) {
                         ForEach(filtered) { card($0) }
                         if filtered.isEmpty {
-                            Text("Aucun jeu").foregroundColor(.secondary).padding(.top, 40)
+                            Text(emptyText)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 40).padding(.horizontal, 30)
                         }
                     }.padding(.horizontal).padding(.bottom, 20)
                 }.id(dm.refresh)
@@ -98,6 +216,11 @@ struct ContentView: View {
             .alert("Erreur", isPresented: Binding(get: { dm.error != nil }, set: { _ in dm.error = nil })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(dm.error ?? "") }
+            .sheet(item: $linkGame) { g in
+                LinkSheet(game: g, initial: custom[g.name] ?? g.dl ?? "") {
+                    setCustom(g.name, $0.trimmingCharacters(in: .whitespacesAndNewlines))
+                }
+            }
         }
     }
 }
