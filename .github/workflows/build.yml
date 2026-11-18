@@ -1,7 +1,10 @@
 name: Build IPA
 on:
   push:
+    branches: [main]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: macos-latest
@@ -25,3 +28,14 @@ jobs:
         with:
           name: Fangames-ipa
           path: Fangames.ipa
+      - name: Publish IPA on branch "ipa"
+        run: |
+          mkdir ../out && cp Fangames.ipa ../out/FanVerse.ipa
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git checkout --orphan ipa
+          git rm -rf . -q
+          cp ../out/FanVerse.ipa .
+          git add FanVerse.ipa
+          git commit -q -m "Build IPA"
+          git push -f origin ipa
