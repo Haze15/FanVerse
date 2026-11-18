@@ -1,17 +1,21 @@
 import SwiftUI
 
-let installCat = "📥 Installer"
+let installCat = "📥 Installés"
 let frCat = "🇫🇷 FR"
+let iphoneCat = "📱 iPhone"
+let favCat = "⭐️ Favoris"
 
 let categoryColors: [String: Color] = [
     "Pokémon": .red, "Sonic": .blue, "Mario": .orange,
     "Zelda": .green, "Undertale": .yellow,
     "Smash": .pink, "Metroid": .teal, "Kirby": .mint,
+    "Mega Man": .cyan, "Autres": .gray,
 ]
 let categorySymbols: [String: String] = [
     "Pokémon": "circle.lefthalf.filled", "Sonic": "hare.fill", "Mario": "star.circle.fill",
     "Zelda": "shield.fill", "Undertale": "heart.fill", "Smash": "bolt.fill",
-    "Metroid": "scope", "Kirby": "cloud.fill",
+    "Metroid": "scope", "Kirby": "cloud.fill", "Mega Man": "bolt.circle.fill",
+    "Autres": "gamecontroller.fill",
 ]
 
 struct LogoView: View {
@@ -19,22 +23,23 @@ struct LogoView: View {
     let color: Color
 
     var fallback: some View {
-        Image(systemName: categorySymbols[game.category] ?? "gamecontroller.fill")
-            .font(.title2).foregroundColor(color)
+        IconTile(symbol: categorySymbols[game.category] ?? "gamecontroller.fill", color: color)
     }
 
     var body: some View {
         Group {
             if let u = game.logoURL {
                 AsyncImage(url: u) { phase in
-                    if let img = phase.image { img.resizable().scaledToFit().padding(6) }
-                    else { fallback }
+                    if let img = phase.image {
+                        img.resizable().scaledToFit().padding(7)
+                            .frame(width: 48, height: 48)
+                            .background(Color(.systemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12.5, style: .continuous))
+                    } else { fallback }
                 }
             } else { fallback }
         }
         .frame(width: 48, height: 48)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 11))
     }
 }
 
@@ -54,7 +59,7 @@ struct LinkSheet: View {
         NavigationStack {
             Form {
                 Section(header: Text(game.name),
-                        footer: Text("Colle un lien direct vers le fichier (.zip, .gba, .nds, .ips, .bps…) fourni par le créateur du jeu. Laisse vide pour retirer le lien.")) {
+                        footer: Text("Colle un lien direct vers le fichier (.zip, .ips, .bps…) fourni par le créateur du jeu. Laisse vide pour retirer le lien.")) {
                     TextField("https://…", text: $text)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
@@ -72,9 +77,9 @@ struct LinkSheet: View {
     }
 }
 
-struct ContentView: View {
+struct GamesView: View {
+    @Binding var category: String
     @State private var search = ""
-    @State private var category = "Tous"
     @State private var linkGame: Game?
     @AppStorage("favs") private var favsRaw = ""
     @AppStorage("customDL") private var customRaw = "{}"
@@ -85,7 +90,7 @@ struct ContentView: View {
         (try? JSONDecoder().decode([String: String].self, from: Data(customRaw.utf8))) ?? [:]
     }
     var categories: [String] {
-        ["Tous", "⭐️", installCat, frCat] + Array(Set(allGames.map(\.category))).sorted()
+        ["Tous", iphoneCat, favCat, frCat, installCat] + Array(Set(allGames.map(\.category))).sorted()
     }
 
     func dlURL(_ g: Game) -> String? { custom[g.name] ?? g.dl }
@@ -101,12 +106,15 @@ struct ContentView: View {
             let okCat: Bool
             switch category {
             case "Tous": okCat = true
-            case "⭐️": okCat = favs.contains(g.name)
+            case iphoneCat: okCat = g.onIPhone
+            case favCat: okCat = favs.contains(g.name)
             case installCat: okCat = dlURL(g) != nil || dm.localFile(for: g) != nil
             case frCat: okCat = g.fr
             default: okCat = g.category == category
             }
-            let okSearch = search.isEmpty || g.name.localizedCaseInsensitiveContains(search)
+            let okSearch = search.isEmpty
+                || g.name.localizedCaseInsensitiveContains(search)
+                || g.desc.localizedCaseInsensitiveContains(search)
             return okCat && okSearch
         }
     }
@@ -136,7 +144,7 @@ struct ContentView: View {
             }
             if let p = dm.progress[g.name] {
                 VStack(alignment: .leading, spacing: 4) {
-                    ProgressView(value: p)
+                    ProgressView(value: p).tint(.fvPurple)
                     Text("\(Int(p * 100)) %  •  \(dm.sizeText[g.name] ?? "")")
                         .font(.caption2).foregroundColor(.secondary)
                 }
@@ -153,16 +161,12 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(g.name).font(.headline)
                 HStack(spacing: 6) {
-                    Text(g.platform).font(.caption2.weight(.bold))
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(color.opacity(0.18)).clipShape(Capsule())
-                    if g.fr {
-                        Text("🇫🇷 FR").font(.caption2.weight(.bold))
-                            .padding(.horizontal, 8).padding(.vertical, 3)
-                            .background(Color.blue.opacity(0.18)).clipShape(Capsule())
-                    }
+                    FVTag(text: g.platform, color: color)
+                    if g.onIPhone { FVTag(text: "📱 iPhone", color: .green) }
+                    if g.fr { FVTag(text: "🇫🇷 FR", color: .blue) }
                 }
                 Text(g.desc).font(.subheadline).foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 actions(g).padding(.top, 2)
             }
             Spacer(minLength: 0)
@@ -170,37 +174,34 @@ struct ContentView: View {
                 Image(systemName: favs.contains(g.name) ? "star.fill" : "star").foregroundColor(.yellow)
             }.buttonStyle(.borderless)
         }
-        .padding(14)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .fvCard()
         .contextMenu {
             Button { linkGame = g } label: { Label("Modifier le lien de téléchargement", systemImage: "link") }
         }
     }
 
     var emptyText: String {
-        category == installCat
-            ? "Rien à installer pour l'instant.\nDans « Tous », touche « Lien » sur un jeu et colle son lien de téléchargement direct."
-            : "Aucun jeu"
+        switch category {
+        case installCat:
+            return "Rien à installer pour l'instant.\nDans « Tous », touche « Lien » sur un jeu et colle son lien de téléchargement direct."
+        case favCat:
+            return "Pas encore de favoris.\nTouche l'étoile d'un jeu pour l'ajouter ici."
+        default:
+            return "Aucun jeu"
+        }
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack {
-                        ForEach(categories, id: \.self) { c in
-                            Button(c) { category = c }
-                                .padding(.horizontal, 14).padding(.vertical, 8)
-                                .background(category == c ? Color.accentColor : Color(.secondarySystemBackground))
-                                .foregroundColor(category == c ? .white : .primary)
-                                .clipShape(Capsule())
-                        }
-                    }.padding(.horizontal)
-                }.padding(.vertical, 8)
-
+                FilterChips(items: categories, selection: $category)
                 ScrollView {
                     LazyVStack(spacing: 12) {
+                        HStack {
+                            Text("\(filtered.count) jeu\(filtered.count > 1 ? "x" : "")")
+                                .font(.footnote.weight(.semibold)).foregroundColor(.secondary)
+                            Spacer()
+                        }
                         ForEach(filtered) { card($0) }
                         if filtered.isEmpty {
                             Text(emptyText)
@@ -208,10 +209,13 @@ struct ContentView: View {
                                 .foregroundColor(.secondary)
                                 .padding(.top, 40).padding(.horizontal, 30)
                         }
-                    }.padding(.horizontal).padding(.bottom, 20)
-                }.id(dm.refresh)
+                    }
+                    .padding(.horizontal).padding(.bottom, 20)
+                }
+                .id(dm.refresh)
             }
-            .navigationTitle("FanVerse")
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Fangames")
             .searchable(text: $search, prompt: "Rechercher un jeu")
             .alert("Erreur", isPresented: Binding(get: { dm.error != nil }, set: { _ in dm.error = nil })) {
                 Button("OK", role: .cancel) {}

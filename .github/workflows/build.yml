@@ -1,41 +1,93 @@
 name: Build IPA
+
 on:
   push:
-    branches: [main]
+    branches: ['**']
+    paths-ignore: ['README.md']
   workflow_dispatch:
+
 permissions:
   contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
       - name: Install XcodeGen
         run: brew install xcodegen
+
       - name: Generate project
         run: xcodegen generate
+
       - name: Build (unsigned)
         run: |
+          set -o pipefail
           xcodebuild -project Fangames.xcodeproj -scheme Fangames \
-            -configuration Release -sdk iphoneos -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tee build.log | grep -E "error:|warning: .*Swift|\*\* BUILD" || true
+          test -d build/Build/Products/Release-iphoneos/Fangames.app || { grep -E "error:" build.log; exit 1; }
+
       - name: Package IPA
         run: |
-          mkdir Payload
+          rm -rf Payload && mkdir Payload
           cp -R build/Build/Products/Release-iphoneos/Fangames.app Payload/
-          zip -r Fangames.ipa Payload
+          zip -qry FanVerse.ipa Payload
+          ls -lh FanVerse.ipa
+
+      - name: AltStore / SideStore source
+        run: |
+          if [ "$GITHUB_REF_NAME" = "main" ]; then TAG=latest; else TAG="beta-${GITHUB_REF_NAME//\//-}"; fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          SIZE=$(stat -f%z FanVerse.ipa)
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Payload/Fangames.app/Info.plist)
+          BID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" Payload/Fangames.app/Info.plist)
+          cat > altstore-source.json <<EOF
+          {
+            "name": "FanVerse",
+            "identifier": "com.haze15.fanverse.source",
+            "apps": [{
+              "name": "FanVerse",
+              "bundleIdentifier": "$BID",
+              "developerName": "Haze15",
+              "localizedDescription": "Fangames, recomps, émulateurs et skins pour iPhone.",
+              "iconURL": "https://raw.githubusercontent.com/${{ github.repository }}/main/Sources/Assets.xcassets/AppIcon.appiconset/icon.png",
+              "versions": [{
+                "version": "$VERSION",
+                "buildVersion": "${{ github.run_number }}",
+                "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "downloadURL": "https://github.com/${{ github.repository }}/releases/download/$TAG/FanVerse.ipa",
+                "size": $SIZE,
+                "minOSVersion": "16.0"
+              }]
+            }]
+          }
+          EOF
+          python3 -m json.tool altstore-source.json > /dev/null
+
       - uses: actions/upload-artifact@v4
         with:
-          name: Fangames-ipa
-          path: Fangames.ipa
-      - name: Publish IPA on branch "ipa"
+          name: FanVerse-ipa
+          path: FanVerse.ipa
+
+      - name: Publish GitHub Release (lien direct vers le .ipa)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir ../out && cp Fangames.ipa ../out/FanVerse.ipa
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git checkout --orphan ipa
-          git rm -rf . -q
-          cp ../out/FanVerse.ipa .
-          git add FanVerse.ipa
-          git commit -q -m "Build IPA"
-          git push -f origin ipa
+          PRE=""; [ "$TAG" = "latest" ] || PRE="--prerelease"
+          gh release delete "$TAG" -y --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" FanVerse.ipa altstore-source.json $PRE \
+            --target "$GITHUB_SHA" \
+            --title "FanVerse build #${{ github.run_number }} ($GITHUB_REF_NAME)" \
+            --notes "IPA non signé : installe-le avec SideStore, AltStore ou Sideloadly.
+
+          Lien direct : https://github.com/${{ github.repository }}/releases/download/$TAG/FanVerse.ipa
+          Source SideStore/AltStore : https://github.com/${{ github.repository }}/releases/download/$TAG/altstore-source.json"
