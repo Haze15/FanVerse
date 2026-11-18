@@ -8,6 +8,14 @@ struct Game: Identifiable {
     let desc: String
     let url: String
     var dl: String? = nil     // lien DIRECT de téléchargement, optionnel
+    var fr: Bool = false      // true = traduit / disponible en français
+    var logoDomain: String? = nil  // domaine pour récupérer le logo (sinon déduit de url)
+
+    var logoURL: URL? {
+        let host = logoDomain ?? URL(string: url)?.host
+        guard let h = host, !h.contains("duckduckgo") else { return nil }
+        return URL(string: "https://www.google.com/s2/favicons?domain=\(h)&sz=128")
+    }
 }
 
 // Recherche web : pour les jeux dont je ne garantis pas l'adresse officielle.
@@ -39,6 +47,22 @@ let allGames: [Game] = [
     Game(name: "Pokémon Clover", category: "Pokémon", platform: "ROM hack GBA",
          desc: "Hack GBA avec beaucoup de Pokémon inédits (fakemon). Demande ta propre ROM.",
          url: search("Pokémon Clover rom hack")),
+
+    // Pokémon en français
+    Game(name: "Pokémon Éclat Pourpre", category: "Pokémon", platform: "ROM hack",
+         desc: "Hack entièrement en français : moto à la place du vélo, CS supprimables dès le 3e badge. Demande ta propre ROM.",
+         url: "https://www.pokemontrash.com/rom-pokemon/pokemon-eclat-pourpre", fr: true),
+    Game(name: "Pokémon Reborn (version FR)", category: "Pokémon", platform: "PC",
+         desc: "Traduction française communautaire de Reborn : contenu en français jusqu'à la Ligue (bêta).",
+         url: "https://rebornevo.com/forums/topic/71461-pok%C3%A9mon-reborn-en-fran%C3%A7ais-french-reborn-translation-version-beta-du-20-avril-2024",
+         fr: true),
+    Game(name: "Pokémon Donjon Mystère : Délusion", category: "Pokémon", platform: "ROM hack DS",
+         desc: "Hack de Donjon Mystère en 4 langues dont le français, créé en trois semaines par une équipe de quatre personnes. Demande ta propre ROM.",
+         url: "https://www.pokemontrash.com/club/vos-fangames-et-projets/(nds)(fr)(en)(de)(es)-pokemon-donjon-mystere-delusion-(publie)",
+         fr: true),
+    Game(name: "150 ROM hacks Pokémon en français", category: "Pokémon", platform: "Liste",
+         desc: "Liste GBrewFR de ROM hacks Pokémon avec patchs de traduction française.",
+         url: "https://www.gbrew.fr/news/news-150-rom-hacks-pokemon-en-francais-patchs-fr/", fr: true),
 
     // Sonic
     Game(name: "Sonic Robo Blast 2", category: "Sonic", platform: "PC",
@@ -90,8 +114,9 @@ let allGames: [Game] = [
          desc: "Hack de FireRed avec la région Newlink et un nouveau scénario. Demande ta propre ROM.",
          url: search("Pokémon Light Platinum rom hack")),
     Game(name: "Pokémon Blaze Black 2 / Volt White 2", category: "Pokémon", platform: "ROM hack DS",
-         desc: "Hack de Noir 2 / Blanc 2 avec difficulté revue et Pokémon rééquilibrés. Demande ta propre ROM.",
-         url: search("Pokémon Blaze Black 2 Volt White 2 redux")),
+         desc: "Hack de Noir 2 / Blanc 2 avec difficulté revue. Patch de traduction FR communautaire quasi complet (histoire, objets, attaques, noms). Demande ta propre ROM.",
+         url: "https://www.pokecommunity.com/threads/%F0%9F%8E%89-rom-hack-nds-traduction-fr-de-pok%C3%A9mon-blaze-black-2-volt-white-2-redux-%F0%9F%8E%89.537852/",
+         fr: true),
 
     // Zelda (suite)
     Game(name: "Zelda: Mystery of Solarus DX", category: "Zelda", platform: "PC / iOS",
