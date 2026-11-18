@@ -5,9 +5,9 @@ struct SkinsView: View {
 
     var importSteps: [String] {
         [
-            "Ouvre un des sites ci-dessous dans Safari et télécharge un skin (fichier .deltaskin).",
-            "Il arrive dans l'app Fichiers → Téléchargements.",
-            "Dans Delta : touche « + » dans la bibliothèque → Fichiers, puis choisis le .deltaskin.",
+            "Ouvre un des sites ci-dessous : il s'affiche dans le navigateur de FanVerse.",
+            "Touche le bouton de téléchargement du skin : la barre de progression apparaît et le fichier arrive dans l'onglet Téléchargements.",
+            "Touche « Ouvrir » sur le fichier puis choisis Delta (ou dans Delta : « + » → Fichiers → Sur mon iPhone → FanVerse → Skins).",
             "Réglages Delta → Skins de manette → choisis la console et l'orientation, puis ton skin.",
         ]
     }
@@ -33,25 +33,22 @@ struct SkinsView: View {
     }
 
     func row(_ s: SkinSource) -> some View {
-        Group {
-            if let u = URL(string: s.url) {
-                Link(destination: u) {
-                    HStack(spacing: 12) {
-                        IconTile(symbol: s.symbol, color: .fvPink, size: 42)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(s.name).font(.headline).foregroundColor(.primary)
-                            Text(s.desc).font(.footnote).foregroundColor(.secondary)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer(minLength: 0)
-                        Image(systemName: "arrow.up.right").font(.footnote.weight(.bold))
-                            .foregroundColor(.secondary)
-                    }
-                    .fvCard()
+        Button { Router.shared.open(s.url, folder: "Skins") } label: {
+            HStack(spacing: 12) {
+                IconTile(symbol: s.symbol, color: .fvPink, size: 42)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(s.name).font(.headline).foregroundColor(.primary)
+                    Text(s.desc).font(.footnote).foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.down.circle").font(.title3)
+                    .foregroundColor(.fvPink)
             }
+            .fvCard()
         }
+        .buttonStyle(.plain)
     }
 
     var body: some View {

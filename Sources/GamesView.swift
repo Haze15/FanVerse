@@ -83,7 +83,7 @@ struct GamesView: View {
     @State private var linkGame: Game?
     @AppStorage("favs") private var favsRaw = ""
     @AppStorage("customDL") private var customRaw = "{}"
-    @StateObject private var dm = DownloadManager()
+    @ObservedObject private var dl = Downloader.shared
 
     var favs: Set<String> { Set(favsRaw.split(separator: "|").map(String.init)) }
     var custom: [String: String] {
@@ -108,7 +108,7 @@ struct GamesView: View {
             case "Tous": okCat = true
             case iphoneCat: okCat = g.onIPhone
             case favCat: okCat = favs.contains(g.name)
-            case installCat: okCat = dlURL(g) != nil || dm.localFile(for: g) != nil
+            case installCat: okCat = dlURL(g) != nil || dl.localFile(folder: g.name) != nil
             case frCat: okCat = g.fr
             default: okCat = g.category == category
             }
@@ -128,25 +128,26 @@ struct GamesView: View {
     @ViewBuilder func actions(_ g: Game) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 18) {
-                if let u = URL(string: g.url) {
-                    Link(destination: u) { Label("Site", systemImage: "safari") }
+                Button { Router.shared.open(g.url, folder: g.name) } label: {
+                    Label("Site", systemImage: "safari")
                 }
-                if dm.progress[g.name] != nil {
-                    Button(role: .destructive) { dm.cancel(g) } label: { Label("Annuler", systemImage: "xmark.circle") }
-                } else if let file = dm.localFile(for: g) {
+                if let it = dl.item(forFolder: g.name) {
+                    Button(role: .destructive) { dl.cancel(it.id) } label: { Label("Annuler", systemImage: "xmark.circle") }
+                } else if let file = dl.localFile(folder: g.name) {
                     ShareLink(item: file) { Label("Ouvrir", systemImage: "square.and.arrow.up") }
-                    Button(role: .destructive) { dm.delete(g) } label: { Image(systemName: "trash") }
+                    Button(role: .destructive) { dl.deleteFolder(g.name) } label: { Image(systemName: "trash") }
                 } else if let s = dlURL(g) {
-                    Button { dm.start(g, from: s) } label: { Label("Installer", systemImage: "arrow.down.circle.fill") }
+                    Button { dl.start(s, name: g.name, folder: g.name) } label: {
+                        Label("Télécharger", systemImage: "arrow.down.circle.fill")
+                    }
                 } else {
                     Button { linkGame = g } label: { Label("Lien", systemImage: "link.badge.plus") }
                 }
             }
-            if let p = dm.progress[g.name] {
+            if let it = dl.item(forFolder: g.name) {
                 VStack(alignment: .leading, spacing: 4) {
-                    ProgressView(value: p).tint(.fvPurple)
-                    Text("\(Int(p * 100)) %  •  \(dm.sizeText[g.name] ?? "")")
-                        .font(.caption2).foregroundColor(.secondary)
+                    DLBar(progress: it.progress, height: 6)
+                    Text(Fmt.status(it)).font(.caption2).foregroundColor(.secondary)
                 }
             }
         }
@@ -176,14 +177,14 @@ struct GamesView: View {
         }
         .fvCard()
         .contextMenu {
-            Button { linkGame = g } label: { Label("Modifier le lien de téléchargement", systemImage: "link") }
+            Button { linkGame = g } label: { Label("Ajouter un lien direct", systemImage: "link") }
         }
     }
 
     var emptyText: String {
         switch category {
         case installCat:
-            return "Rien à installer pour l'instant.\nDans « Tous », touche « Lien » sur un jeu et colle son lien de téléchargement direct."
+            return "Rien de téléchargé pour l'instant.\nTouche « Site » sur un jeu : ce que tu télécharges sur sa page arrive ici."
         case favCat:
             return "Pas encore de favoris.\nTouche l'étoile d'un jeu pour l'ajouter ici."
         default:
@@ -212,14 +213,10 @@ struct GamesView: View {
                     }
                     .padding(.horizontal).padding(.bottom, 20)
                 }
-                .id(dm.refresh)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Fangames")
             .searchable(text: $search, prompt: "Rechercher un jeu")
-            .alert("Erreur", isPresented: Binding(get: { dm.error != nil }, set: { _ in dm.error = nil })) {
-                Button("OK", role: .cancel) {}
-            } message: { Text(dm.error ?? "") }
             .sheet(item: $linkGame) { g in
                 LinkSheet(game: g, initial: custom[g.name] ?? g.dl ?? "") {
                     setCustom(g.name, $0.trimmingCharacters(in: .whitespacesAndNewlines))

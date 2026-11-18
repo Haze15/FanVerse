@@ -1,10 +1,12 @@
 import SwiftUI
 
-enum AppTab: Hashable { case home, games, ports, emulators, skins }
+enum AppTab: Hashable { case home, games, ports, skins, downloads }
 
 struct HomeView: View {
     @Binding var tab: AppTab
     @Binding var gameCategory: String
+    @ObservedObject private var dl = Downloader.shared
+    @State private var showEmulators = false
 
     var iphoneGames: [Game] { allGames.filter(\.onIPhone) }
 
@@ -54,6 +56,8 @@ struct HomeView: View {
             }
             tile("Recomps & ports", "\(allPorts.count)", "cpu.fill", .fvPurple) { tab = .ports }
             tile("Sites de skins", "\(allSkinSources.count)", "paintpalette.fill", .fvPink) { tab = .skins }
+            tile("Émulateurs", "\(allEmulators.count)", "gamecontroller.fill", .fvBlue) { showEmulators = true }
+            tile("Mes fichiers", "\(dl.files.count)", "arrow.down.circle.fill", .teal) { tab = .downloads }
         }
     }
 
@@ -78,9 +82,8 @@ struct HomeView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(iphoneGames.prefix(12)) { g in
-                        if let u = URL(string: g.url) {
-                            Link(destination: u) { featuredCard(g) }.buttonStyle(.plain)
-                        }
+                        Button { Router.shared.open(g.url, folder: g.name) } label: { featuredCard(g) }
+                            .buttonStyle(.plain)
                     }
                 }
             }
@@ -91,8 +94,8 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionTitle(title: "Installer un .ipa", subtitle: "Pour FanVerse lui-même et les recomps")
             VStack(alignment: .leading, spacing: 14) {
-                StepRow(number: 1, text: "Récupère le fichier .ipa (page Releases du projet).")
-                StepRow(number: 2, text: "Installe-le avec SideStore ou AltStore (sur iPhone) ou Sideloadly (depuis un ordi). Ils signent l'app avec ton identifiant Apple.")
+                StepRow(number: 1, text: "Télécharge le .ipa dans l'onglet Téléchargements (ou depuis la page Releases du projet).")
+                StepRow(number: 2, text: "Touche « Ouvrir » sur le fichier puis choisis SideStore ou AltStore. Sinon installe-le avec SideStore ou AltStore (sur iPhone) ou Sideloadly (depuis un ordi). Ils signent l'app avec ton identifiant Apple.")
                 StepRow(number: 3, text: "Avec un compte Apple gratuit, l'app doit être re-signée tous les 7 jours (SideStore/AltStore le font pour toi).")
                 StepRow(number: 4, text: "Réglages → Général → VPN et gestion de l'appareil : fais confiance à ton profil développeur si iOS le demande.")
             }
@@ -116,7 +119,8 @@ struct HomeView: View {
                 .padding()
             }
             .background(Color(.systemGroupedBackground))
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $showEmulators) { EmulatorsView() }
         }
     }
 }

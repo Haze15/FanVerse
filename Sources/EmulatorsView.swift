@@ -32,8 +32,7 @@ struct EmulatorsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 LazyVStack(spacing: 12) {
                     Text("Pour jouer aux ROM hacks de la liste Fangames. Les émulateurs ne contiennent aucun jeu : utilise tes propres sauvegardes de cartouches.")
                         .font(.footnote).foregroundColor(.secondary)
@@ -44,6 +43,5 @@ struct EmulatorsView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Émulateurs")
-        }
     }
 }

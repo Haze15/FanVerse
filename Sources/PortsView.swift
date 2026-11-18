@@ -57,13 +57,12 @@ struct PortsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Label(p.needs, systemImage: "doc.badge.plus")
                     .font(.caption).foregroundColor(.secondary)
-                if let u = URL(string: p.url) {
-                    Link(destination: u) {
-                        Label(p.method == .padmint ? "Voir le projet" : "Ouvrir", systemImage: p.method.symbol)
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.top, 2)
+                Button { Router.shared.open(p.url, folder: p.name) } label: {
+                    Label(p.method == .padmint ? "Voir le projet" : "Ouvrir", systemImage: p.method.symbol)
                 }
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.borderless)
+                .padding(.top, 2)
             }
             Spacer(minLength: 0)
         }
