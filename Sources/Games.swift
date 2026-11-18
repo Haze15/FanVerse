@@ -16,11 +16,11 @@ struct Game: Identifiable {
         guard let h = host, !h.contains("duckduckgo") else { return nil }
         return URL(string: "https://www.google.com/s2/favicons?domain=\(h)&sz=128")
     }
-}
 
-// Recherche web : pour les jeux dont je ne garantis pas l'adresse officielle.
-func search(_ q: String) -> String {
-    "https://duckduckgo.com/?q=" + (q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? q)
+    /// Jouable directement sur iPhone : ROM hack (via Delta & co), navigateur ou version iOS.
+    var onIPhone: Bool {
+        platform.contains("ROM hack") || platform.contains("Navigateur") || platform.contains("iOS")
+    }
 }
 
 // Une ligne = un jeu. Ajoute  dl: "https://lien-direct/jeu.zip"  pour activer Télécharger.
@@ -161,4 +161,132 @@ let allGames: [Game] = [
     Game(name: "Undertale Yellow", category: "Undertale", platform: "PC",
          desc: "Préquelle fan d'Undertale avec un nouveau personnage principal et ses propres combats.",
          url: "https://undertaleyellow.com"),
+
+    // ───────────── Nouveaux ajouts ─────────────
+
+    // Pokémon
+    Game(name: "PokéRogue", category: "Pokémon", platform: "Navigateur",
+         desc: "Roguelite Pokémon gratuit : runs aléatoires, objets cumulables, biomes. Marche dans Safari (ajoute-le à l'écran d'accueil).",
+         url: "https://pokerogue.net"),
+    Game(name: "Pokémon Emerald Rogue", category: "Pokémon", platform: "ROM hack GBA",
+         desc: "Émeraude transformé en roguelite : chaque run est différente. Demande ta propre ROM.",
+         url: search("Pokémon Emerald Rogue rom hack")),
+    Game(name: "Pokémon Emerald Seaglass", category: "Pokémon", platform: "ROM hack GBA",
+         desc: "Émeraude modernisé avec beaucoup d'options de confort et les Pokémon récents. Demande ta propre ROM.",
+         url: search("Pokémon Emerald Seaglass")),
+    Game(name: "Pokémon Inclement Emerald", category: "Pokémon", platform: "ROM hack GBA",
+         desc: "Émeraude beaucoup plus difficile, avec mécaniques modernes. Demande ta propre ROM.",
+         url: search("Pokémon Inclement Emerald")),
+    Game(name: "Pokémon Elite Redux", category: "Pokémon", platform: "ROM hack GBA",
+         desc: "Émeraude orienté combat compétitif, avec talents multiples. Demande ta propre ROM.",
+         url: search("Pokémon Elite Redux")),
+    Game(name: "Pokémon Glazed", category: "Pokémon", platform: "ROM hack GBA",
+         desc: "Hack d'Émeraude avec la région Tunod et plusieurs régions à visiter. Demande ta propre ROM.",
+         url: search("Pokémon Glazed rom hack")),
+    Game(name: "Pokémon Gaia", category: "Pokémon", platform: "ROM hack GBA",
+         desc: "Hack de FireRed avec la région Orbtus et un scénario original. Demande ta propre ROM.",
+         url: search("Pokémon Gaia rom hack")),
+    Game(name: "Pokémon Vega", category: "Pokémon", platform: "ROM hack GBA",
+         desc: "Région Tohoak, Pokémon d'origine et difficulté relevée. Demande ta propre ROM.",
+         url: search("Pokémon Vega rom hack")),
+    Game(name: "Pokémon Crystal Clear", category: "Pokémon", platform: "ROM hack GBC",
+         desc: "Cristal en monde ouvert : choisis ton starter et l'ordre des badges. Demande ta propre ROM.",
+         url: search("Pokémon Crystal Clear")),
+    Game(name: "Pokémon Polished Crystal", category: "Pokémon", platform: "ROM hack GBC",
+         desc: "Cristal amélioré : nouvelles zones, graphismes revus, Pokémon de toutes générations. Demande ta propre ROM.",
+         url: "https://github.com/Rangi42/polishedcrystal"),
+    Game(name: "Pokémon Prism", category: "Pokémon", platform: "ROM hack GBC",
+         desc: "Grosse aventure sur base Cristal, région Naljo. Demande ta propre ROM.",
+         url: search("Pokémon Prism rom hack")),
+    Game(name: "Pokémon Renegade Platinum", category: "Pokémon", platform: "ROM hack DS",
+         desc: "Platine équilibré par Drayano : plus d'espèces, difficulté revue. Demande ta propre ROM.",
+         url: search("Pokémon Renegade Platinum Drayano")),
+    Game(name: "Pokémon Sacred Gold / Storm Silver", category: "Pokémon", platform: "ROM hack DS",
+         desc: "HeartGold/SoulSilver revus par Drayano, avec les 493 Pokémon obtenables. Demande ta propre ROM.",
+         url: search("Pokémon Sacred Gold Storm Silver")),
+
+    // Sonic
+    Game(name: "Sonic 3 A.I.R.", category: "Sonic", platform: "PC / iOS (web)",
+         desc: "Sonic 3 & Knuckles remasterisé en widescreen. Version iPhone en web app (bêta). Demande ton fichier de jeu.",
+         url: "https://sonic3air.org"),
+    Game(name: "Sonic Triple Trouble 16-Bit", category: "Sonic", platform: "PC",
+         desc: "Remake 16-bit fan du jeu Game Gear, très soigné.",
+         url: search("Sonic Triple Trouble 16-Bit")),
+    Game(name: "Sonic Chrono Adventure", category: "Sonic", platform: "PC",
+         desc: "Sonic façon Metroidvania avec voyage dans le temps.",
+         url: search("Sonic Chrono Adventure")),
+    Game(name: "Sonic Galactic", category: "Sonic", platform: "PC",
+         desc: "Jeu 2D style Saturn imaginaire, nouveaux niveaux et personnages jouables.",
+         url: search("Sonic Galactic fangame")),
+    Game(name: "Sonic Utopia", category: "Sonic", platform: "PC",
+         desc: "Démo 3D en monde ouvert axée sur la vitesse et la physique.",
+         url: search("Sonic Utopia fangame")),
+    Game(name: "Dr. Robotnik's Ring Racers", category: "Sonic", platform: "PC",
+         desc: "Jeu de kart Sonic par l'équipe de SRB2Kart, très technique.",
+         url: search("Dr. Robotnik's Ring Racers")),
+
+    // Mario
+    Game(name: "Super Mario 64 Coop Deluxe", category: "Mario", platform: "PC",
+         desc: "Mario 64 en multijoueur en ligne avec mods. Demande ta propre ROM.",
+         url: "https://github.com/coop-deluxe/sm64coopdx"),
+    Game(name: "Super Mario Star Road", category: "Mario", platform: "ROM hack N64",
+         desc: "Hack culte de Mario 64 avec 130 étoiles inédites. Jouable dans Delta (N64). Demande ta propre ROM.",
+         url: search("Super Mario Star Road rom hack")),
+    Game(name: "Super Mario 74", category: "Mario", platform: "ROM hack N64",
+         desc: "Deux aventures complètes de Mario 64 (normale + Extreme Edition). Demande ta propre ROM.",
+         url: search("Super Mario 74 rom hack")),
+    Game(name: "SMW Central", category: "Mario", platform: "ROM hack SNES",
+         desc: "La référence des hacks de Super Mario World, triés et notés. Demande ta propre ROM.",
+         url: "https://www.smwcentral.net"),
+    Game(name: "Mario Multiverse", category: "Mario", platform: "PC",
+         desc: "Créateur de niveaux Mario multi-styles avec partage en ligne.",
+         url: search("Mario Multiverse fangame")),
+    Game(name: "Super Mario Bros. Remastered", category: "Mario", platform: "PC",
+         desc: "Recréation de Super Mario Bros. avec éditeur de niveaux. Demande ta propre ROM NES.",
+         url: search("Super Mario Bros. Remastered JHDev2006")),
+
+    // Zelda
+    Game(name: "Zelda: Return of the Hylian SE", category: "Zelda", platform: "PC",
+         desc: "Le Zelda fan d'origine, refait avec le moteur Solarus.",
+         url: "https://www.solarus-games.org"),
+    Game(name: "Zelda: Time to Triumph", category: "Zelda", platform: "PC",
+         desc: "Jeu complet style A Link to the Past, plusieurs donjons inédits.",
+         url: search("Zelda Time to Triumph fangame")),
+
+    // Metroid
+    Game(name: "Super Metroid Redesign", category: "Metroid", platform: "ROM hack SNES",
+         desc: "Super Metroid redessiné et bien plus dur. Demande ta propre ROM.",
+         url: search("Super Metroid Redesign rom hack")),
+    Game(name: "Hyper Metroid", category: "Metroid", platform: "ROM hack SNES",
+         desc: "Hack de Super Metroid avec carte entièrement nouvelle. Demande ta propre ROM.",
+         url: search("Hyper Metroid rom hack")),
+    Game(name: "Metroid: Rogue Dawn", category: "Metroid", platform: "ROM hack NES",
+         desc: "Préquelle sur base NES, graphismes très poussés. Demande ta propre ROM.",
+         url: search("Metroid Rogue Dawn")),
+
+    // Mega Man
+    Game(name: "Mega Man Maker", category: "Mega Man", platform: "PC",
+         desc: "Crée et joue des niveaux Mega Man en ligne.",
+         url: "https://megamanmaker.com"),
+    Game(name: "Mega Man Unlimited", category: "Mega Man", platform: "PC",
+         desc: "Un « Mega Man 10 » fan dans le style NES, avec 8 nouveaux boss.",
+         url: search("Mega Man Unlimited fangame")),
+    Game(name: "Mega Man 2.5D", category: "Mega Man", platform: "PC",
+         desc: "Mega Man en 2.5D avec multijoueur en ligne.",
+         url: search("Mega Man 2.5D fangame")),
+
+    // Smash
+    Game(name: "Project+", category: "Smash", platform: "Mod Wii",
+         desc: "Mod de Smash Bros. Brawl au gameplay plus rapide, façon Melee.",
+         url: search("Project+ Smash Brawl mod")),
+
+    // Undertale
+    Game(name: "Deltatraveler", category: "Undertale", platform: "PC",
+         desc: "Fangame qui croise Undertale et Deltarune.",
+         url: search("Deltatraveler fangame")),
+
+    // Autres
+    Game(name: "Streets of Rage Remake", category: "Autres", platform: "PC",
+         desc: "Remake fan des trois Streets of Rage en un seul jeu.",
+         url: search("Streets of Rage Remake Bomber Games")),
 ]
