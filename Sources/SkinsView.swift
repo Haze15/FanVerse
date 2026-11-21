@@ -60,6 +60,9 @@ struct SkinsView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     hero
 
+                    SkinGalleryView()
+
+                    SectionTitle(title: "Tous les sites de skins")
                     Picker("Appli", selection: $group) {
                         ForEach(skinGroups, id: \.self) { Text($0).tag($0) }
                     }

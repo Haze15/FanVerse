@@ -35,6 +35,7 @@ struct Port: Identifiable {
     let url: String
     let method: PortMethod
     var needs: String = "Ta propre copie du jeu"
+    var auto: AutoSource? = nil
 
     var consoleColor: Color {
         switch console {
@@ -94,7 +95,8 @@ let allPorts: [Port] = [
 
     // ── GameCube / Wii
     pad("SunPad", "Super Mario Sunshine", "GameCube", "Port natif de Super Mario Sunshine."),
-    pad("BlueWake", "Zelda: The Wind Waker", "GameCube", "Port natif de The Wind Waker.", repo: "bluewake"),
+    { () -> Port in var p = pad("BlueWake", "Zelda: The Wind Waker", "GameCube", "Port natif de The Wind Waker.", repo: "bluewake")
+      p.auto = .github(repo: "chrissotraidis/bluewake", tag: nil, must: [], exts: [".ipa"]); return p }(),
     pad("MeleePad", "Super Smash Bros. Melee", "GameCube", "Port natif de Melee."),
     pad("BellPad", "Animal Crossing", "GameCube", "Port natif d'Animal Crossing GameCube."),
     pad("BallPad", "Super Mario Strikers", "GameCube", "Port natif de Mario Strikers."),
@@ -116,7 +118,8 @@ let allPorts: [Port] = [
     // ── Apps PadMint toutes prêtes (pas besoin de compiler)
     Port(name: "DevilTouch", game: "Diablo + Hellfire", console: "PC",
          desc: "DevilutionX repensé pour le tactile, en app native. Une IPA est publiée (préversion, pensée d'abord pour iPad).",
-         url: "https://github.com/chrissotraidis/deviltouch", method: .ipa, needs: "Fichiers du jeu (DIABDAT.MPQ)"),
+         url: "https://github.com/chrissotraidis/deviltouch", method: .ipa, needs: "Fichiers du jeu (DIABDAT.MPQ)",
+         auto: .github(repo: "chrissotraidis/deviltouch", tag: nil, must: [], exts: [".ipa"])),
     Port(name: "VaultPad", game: "Fallout 2", console: "PC",
          desc: "Fallout 2 en app native, app prête à l'emploi de PadMint.", url: padmintURL, method: .ipa),
     Port(name: "PeonPad", game: "Warcraft II", console: "PC",
@@ -136,21 +139,26 @@ let allPorts: [Port] = [
     Port(name: "Dusklight", game: "Zelda: Twilight Princess", console: "GameCube",
          desc: "Port natif de Twilit Realm (ex-« Dusk ») : HD, framerate débloqué, contrôles tactiles depuis la v1.4. IPA dans les Releases.",
          url: "https://github.com/TwilitRealm/dusklight/releases", method: .ipa,
-         needs: "Ton image disque GameCube du jeu"),
+         needs: "Ton image disque GameCube du jeu",
+         auto: .github(repo: "TwilitRealm/dusklight", tag: nil, must: ["ios"], exts: [".ipa"])),
     Port(name: "ico-pc", game: "ICO", console: "PS2",
          desc: "Port de la décompilation d'ICO. IPA iOS non signée publiée (iPhone via LiveContainer).",
-         url: "https://github.com/nathanialf/ico-pc/releases", method: .ipa),
+         url: "https://github.com/nathanialf/ico-pc/releases", method: .ipa,
+         auto: .github(repo: "nathanialf/ico-pc", tag: nil, must: ["ios"], exts: [".ipa"])),
     Port(name: "VCMI", game: "Heroes of Might and Magic III", console: "PC",
          desc: "Moteur open source de Heroes III, IPA iOS dans les Releases (installable avec AltStore).",
          url: "https://github.com/vcmi/vcmi/releases/latest", method: .ipa,
-         needs: "Fichiers de Heroes III"),
+         needs: "Fichiers de Heroes III",
+         auto: .github(repo: "vcmi/vcmi", tag: nil, must: ["ios"], exts: [".ipa"])),
     Port(name: "SDLPAL", game: "Chinese Paladin (Xian Jian Qi Xia Zhuan)", console: "PC",
          desc: "Réimplémentation open source du RPG culte, IPA iOS non signée publiée.",
-         url: "https://github.com/sdlpal/sdlpal", method: .ipa, needs: "Fichiers du jeu"),
+         url: "https://github.com/sdlpal/sdlpal", method: .ipa, needs: "Fichiers du jeu",
+         auto: .direct("https://dl.cloudsmith.io/public/sdlpal/sdlpal/raw/names/iOS/versions/latest/sdlpal-unsigned.ipa")),
     Port(name: "Silent Hill (décomp)", game: "Silent Hill", console: "PS1",
          desc: "Décompilation avec IPA non signée publiée à chaque mise à jour, et source AltStore/SideStore pour les mises à jour auto.",
          url: "https://github.com/SlickAmogus/silent-hill-decomp/releases/tag/realtime",
-         method: .ipa),
+         method: .ipa,
+         auto: .github(repo: "SlickAmogus/silent-hill-decomp", tag: "realtime", must: [], exts: [".ipa"])),
     Port(name: "Sonic 3 A.I.R. iOS", game: "Sonic 3 & Knuckles", console: "Mega Drive",
          desc: "Version web (bêta) : ouvre dans Safari, Partager → Sur l'écran d'accueil. iOS 13+.",
          url: "https://projects.sappharad.com/s3air_ios/20260228_beta/",

@@ -109,7 +109,7 @@ struct HomeView: View {
             SectionTitle(title: "Fangames Pokémon en français", subtitle: "\(tffrGames.count) jeux traduits par le Discord TFFR")
             VStack(alignment: .leading, spacing: 14) {
                 StepRow(number: 1, text: "Ouvre le salon #téléchargements du Discord (bouton ci-dessous) et choisis ton jeu.")
-                StepRow(number: 2, text: "Copie le lien de téléchargement et colle-le dans l'onglet Téléchargements de FanVerse : la page s'ouvre, touche « Télécharger » et suis la barre de progression.")
+                StepRow(number: 2, text: "Appui long sur le lien de téléchargement → Copier, puis reviens dans FanVerse : touche « Coller » sur la bannière et ça télécharge tout seul (MediaFire compris), avec la barre de progression.")
                 StepRow(number: 3, text: "Touche le .zip dans l'app Fichiers (Sur mon iPhone → FanVerse) pour le décompresser.")
                 StepRow(number: 4, text: "Dans RPGPlayer, importe le dossier du jeu. Si le post a un correctif « NaviaXP / RPGPlayer », remplace le fichier dans le dossier Data.")
                 HStack(spacing: 10) {

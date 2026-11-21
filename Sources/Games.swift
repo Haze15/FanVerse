@@ -10,6 +10,7 @@ struct Game: Identifiable {
     var dl: String? = nil     // lien DIRECT de téléchargement, optionnel
     var fr: Bool = false      // true = traduit / disponible en français
     var logoDomain: String? = nil  // domaine pour récupérer le logo (sinon déduit de url)
+    var auto: AutoSource? = nil    // téléchargement automatique depuis la source officielle
 
     var logoURL: URL? {
         let host = logoDomain ?? URL(string: url)?.host
@@ -195,7 +196,8 @@ let baseGames: [Game] = [
          url: search("Pokémon Crystal Clear")),
     Game(name: "Pokémon Polished Crystal", category: "Pokémon", platform: "ROM hack GBC",
          desc: "Cristal amélioré : nouvelles zones, graphismes revus, Pokémon de toutes générations. Demande ta propre ROM.",
-         url: "https://github.com/Rangi42/polishedcrystal"),
+         url: "https://github.com/Rangi42/polishedcrystal",
+         auto: .github(repo: "Rangi42/polishedcrystal", tag: nil, must: [], exts: [".bps", ".ips"])),
     Game(name: "Pokémon Prism", category: "Pokémon", platform: "ROM hack GBC",
          desc: "Grosse aventure sur base Cristal, région Naljo. Demande ta propre ROM.",
          url: search("Pokémon Prism rom hack")),

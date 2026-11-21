@@ -108,7 +108,7 @@ struct GamesView: View {
             case "Tous": okCat = true
             case iphoneCat: okCat = g.onIPhone
             case favCat: okCat = favs.contains(g.name)
-            case installCat: okCat = dlURL(g) != nil || dl.localFile(folder: g.name) != nil
+            case installCat: okCat = g.auto != nil || dlURL(g) != nil || dl.localFile(folder: g.name) != nil
             case frCat: okCat = g.fr
             default: okCat = g.category == category
             }
@@ -136,6 +136,10 @@ struct GamesView: View {
                 } else if let file = dl.localFile(folder: g.name) {
                     ShareLink(item: file) { Label("Ouvrir", systemImage: "square.and.arrow.up") }
                     Button(role: .destructive) { dl.deleteFolder(g.name) } label: { Image(systemName: "trash") }
+                } else if let auto = g.auto {
+                    Button { dl.startAuto(auto, name: g.name, folder: g.name, page: g.url) } label: {
+                        Label("Télécharger", systemImage: "arrow.down.circle.fill")
+                    }
                 } else if let s = dlURL(g) {
                     Button { dl.start(s, name: g.name, folder: g.name) } label: {
                         Label("Télécharger", systemImage: "arrow.down.circle.fill")

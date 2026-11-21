@@ -3,6 +3,15 @@ import WebKit
 
 /// Gestionnaire de téléchargements unique pour toute l'app :
 /// liens directs (URLSession) + fichiers téléchargés depuis le navigateur intégré (WKDownload).
+/// Où trouver le fichier à télécharger automatiquement
+enum AutoSource {
+    /// Lien direct (ou page MediaFire, résolue toute seule)
+    case direct(String)
+    /// Dernière release GitHub : le nom du fichier doit contenir tous les mots de `must`
+    /// et finir par une des extensions `exts`.
+    case github(repo: String, tag: String?, must: [String], exts: [String])
+}
+
 final class Downloader: NSObject, ObservableObject {
     static let shared = Downloader()
 
@@ -79,11 +88,98 @@ final class Downloader: NSObject, ObservableObject {
         let fixed = Self.directLink(url)
         let item = Item(name: name ?? Self.guessName(fixed), source: fixed, folder: folder)
         items.insert(item, at: 0)
-        let task = session.downloadTask(with: fixed)
-        urlTasks[task.taskIdentifier] = item.id
-        running[item.id] = task
-        task.resume()
+        launch(fixed, id: item.id)
         return true
+    }
+
+    /// Lance le transfert. Les pages MediaFire sont résolues toutes seules en lien direct.
+    private func launch(_ url: URL, id: UUID) {
+        let host = url.host?.lowercased() ?? ""
+        if host.hasSuffix("mediafire.com") && !host.hasPrefix("download") {
+            var req = URLRequest(url: url)
+            req.setValue(Self.desktopUA, forHTTPHeaderField: "User-Agent")
+            URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
+                let html = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+                let direct = Self.mediafireLink(in: html)
+                DispatchQueue.main.async {
+                    guard let self = self, let i = self.index(id), self.items[i].isRunning else { return }
+                    if let d = direct {
+                        self.launch(d, id: id)
+                    } else {
+                        self.items[i].state = .failed("MediaFire n'a pas donné le fichier : la page s'ouvre, touche son bouton de téléchargement.")
+                        Router.shared.open(url.absoluteString, folder: self.items[i].folder)
+                    }
+                }
+            }.resume()
+            return
+        }
+        let task = session.downloadTask(with: url)
+        urlTasks[task.taskIdentifier] = id
+        running[id] = task
+        task.resume()
+    }
+
+    static let desktopUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+
+    static func mediafireLink(in html: String) -> URL? {
+        if let r = html.range(of: #"https?://download[0-9]*\.mediafire\.com/[^"'\s<>]+"#, options: .regularExpression) {
+            return URL(string: String(html[r]))
+        }
+        if let r = html.range(of: #"data-scrambled-url="[^"]+""#, options: .regularExpression) {
+            let attr = String(html[r]).dropFirst("data-scrambled-url=\"".count).dropLast()
+            if let d = Data(base64Encoded: String(attr)), let s = String(data: d, encoding: .utf8) {
+                return URL(string: s)
+            }
+        }
+        return nil
+    }
+
+    // MARK: - Téléchargement automatique (sources officielles)
+
+    /// Télécharge depuis une source officielle, en trouvant tout seul le bon fichier.
+    func startAuto(_ src: AutoSource, name: String, folder: String, page: String) {
+        switch src {
+        case .direct(let link):
+            start(link, name: name, folder: folder)
+        case .github(let repo, let tag, let must, let exts):
+            let item = Item(name: name, source: URL(string: page), folder: folder)
+            let id = item.id
+            items.insert(item, at: 0)
+            let api = tag.map { "https://api.github.com/repos/\(repo)/releases/tags/\($0)" }
+                ?? "https://api.github.com/repos/\(repo)/releases?per_page=15"
+            guard let apiURL = URL(string: api) else { return }
+            var req = URLRequest(url: apiURL)
+            req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
+                var found: (String, URL)? = nil
+                if let data = data, let json = try? JSONSerialization.jsonObject(with: data) {
+                    let releases = (json as? [[String: Any]]) ?? ((json as? [String: Any]).map { [$0] } ?? [])
+                    outer: for rel in releases {
+                        for asset in (rel["assets"] as? [[String: Any]]) ?? [] {
+                            guard let n = asset["name"] as? String,
+                                  let s = asset["browser_download_url"] as? String,
+                                  let u = URL(string: s) else { continue }
+                            let low = n.lowercased()
+                            if must.allSatisfy({ low.contains($0) })
+                                && (exts.isEmpty || exts.contains(where: { low.hasSuffix($0) })) {
+                                found = (n, u)
+                                break outer
+                            }
+                        }
+                    }
+                }
+                DispatchQueue.main.async {
+                    guard let self = self, let i = self.index(id), self.items[i].isRunning else { return }
+                    if let f = found {
+                        self.items[i].name = f.0
+                        self.launch(f.1, id: id)
+                    } else {
+                        self.items[i].state = .failed("Pas de fichier pour iPhone dans la dernière version : la page du projet s'ouvre.")
+                        Router.shared.open(page, folder: folder)
+                    }
+                }
+            }.resume()
+        }
     }
 
     /// Transforme les liens de partage courants en liens de téléchargement direct.
@@ -137,7 +233,8 @@ final class Downloader: NSObject, ObservableObject {
     func cancel(_ id: UUID) {
         running[id]?.cancel()
         webObjects[id]?.cancel { _ in }
-        if let i = index(id), items[i].isRunning, webObjects[id] != nil {
+        if let i = index(id), items[i].isRunning, running[id] == nil {
+            // Transfert web, ou recherche du fichier encore en cours
             items[i].state = .cancelled
             cleanupWeb(id)
         }

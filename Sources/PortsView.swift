@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PortsView: View {
+    @ObservedObject private var dl = Downloader.shared
     @State private var filter = "Tous"
     @State private var search = ""
     @State private var showGuide = false
@@ -59,12 +60,31 @@ struct PortsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Label(p.needs, systemImage: "doc.badge.plus")
                     .font(.caption).foregroundColor(.secondary)
-                Button { Router.shared.open(p.url, folder: p.name) } label: {
-                    Label(p.method == .padmint ? "Voir le projet" : "Ouvrir", systemImage: p.method.symbol)
+                HStack(spacing: 16) {
+                    if let auto = p.auto {
+                        if let it = dl.item(forFolder: p.name) {
+                            Button(role: .destructive) { dl.cancel(it.id) } label: {
+                                Label("Annuler", systemImage: "xmark.circle")
+                            }
+                        } else if let f = dl.localFile(folder: p.name) {
+                            ShareLink(item: f) { Label("Installer", systemImage: "square.and.arrow.up") }
+                        } else {
+                            Button { dl.startAuto(auto, name: p.name, folder: p.name, page: p.url) } label: {
+                                Label("Télécharger", systemImage: "arrow.down.circle.fill")
+                            }
+                        }
+                    }
+                    Button { Router.shared.open(p.url, folder: p.name) } label: {
+                        Label(p.method == .padmint ? "Voir le projet" : "Page", systemImage: p.method.symbol)
+                    }
                 }
                 .font(.subheadline.weight(.semibold))
                 .buttonStyle(.borderless)
                 .padding(.top, 2)
+                if let it = dl.item(forFolder: p.name) {
+                    DLBar(progress: it.progress, height: 6)
+                    Text(Fmt.status(it)).font(.caption2).foregroundColor(.secondary)
+                }
             }
             Spacer(minLength: 0)
           }
