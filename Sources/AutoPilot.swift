@@ -157,6 +157,14 @@ final class AutoSession: NSObject, WKNavigationDelegate, WKUIDelegate {
       }
       var itch = links.filter(function (a) { return a.href.indexOf('itch.io') >= 0 && dlText.test(a.textContent); });
       if (itch.length) { window.__fv.clicked.push(key(itch[0])); window.location.href = itch[0].href; return 'nav'; }
+      // Site officiel : suivre une seule fois le lien interne vers la page « Download / Descargar »
+      if (!sessionStorage.getItem('fvFollowed')) {
+        var inner = links.find(function (a) {
+          return a.host === location.host && a.href !== location.href &&
+                 (/download|descarga|telechargement/i.test(a.pathname) || /^\s*(download|descargar|télécharger)/i.test(a.textContent));
+        });
+        if (inner) { sessionStorage.setItem('fvFollowed', '1'); window.location.href = inner.href; return 'nav'; }
+      }
       return 'none';
     })();
     """#
