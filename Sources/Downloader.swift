@@ -10,6 +10,8 @@ enum AutoSource {
     /// Dernière release GitHub : le nom du fichier doit contenir tous les mots de `must`
     /// et finir par une des extensions `exts`.
     case github(repo: String, tag: String?, must: [String], exts: [String])
+    /// Page officielle (forum, itch.io…) : l'app l'ouvre en arrière-plan et clique elle-même sur Télécharger
+    case page(String)
 }
 
 final class Downloader: NSObject, ObservableObject {
@@ -141,6 +143,11 @@ final class Downloader: NSObject, ObservableObject {
         switch src {
         case .direct(let link):
             start(link, name: name, folder: folder)
+        case .page(let link):
+            guard let u = URL(string: link) else { return }
+            let item = Item(name: name, source: u, folder: folder)
+            items.insert(item, at: 0)
+            AutoPilot.shared.run(page: u, id: item.id, folder: folder)
         case .github(let repo, let tag, let must, let exts):
             let item = Item(name: name, source: URL(string: page), folder: folder)
             let id = item.id
@@ -393,8 +400,23 @@ extension Downloader: WKDownloadDelegate {
     func attach(_ download: WKDownload, folder: String = Downloader.generalFolder) {
         let src = download.originalRequest?.url
         let item = Item(name: src.map { Downloader.guessName($0) } ?? "fichier", source: src, folder: folder)
-        let id = item.id
         items.insert(item, at: 0)
+        wire(download, id: item.id)
+    }
+
+    /// Rattache un téléchargement du pilote automatique à sa ligne existante.
+    func attach(_ download: WKDownload, toItem id: UUID) {
+        wire(download, id: id)
+    }
+
+    /// Le pilote automatique n'a pas trouvé le fichier : on ouvre la page pour l'utilisateur.
+    func failAuto(_ id: UUID, page: String) {
+        guard let i = index(id), items[i].isRunning else { return }
+        items[i].state = .failed("Le bouton de téléchargement n'a pas été trouvé tout seul : la page officielle s'ouvre.")
+        Router.shared.open(page, folder: items[i].folder)
+    }
+
+    private func wire(_ download: WKDownload, id: UUID) {
         webIDs[ObjectIdentifier(download)] = id
         webObjects[id] = download
         download.delegate = self
