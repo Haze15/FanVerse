@@ -1,5 +1,6 @@
 import SwiftUI
 import WebKit
+import UIKit
 
 /// Page à ouvrir dans le navigateur intégré
 struct WebPage: Identifiable {
@@ -16,7 +17,25 @@ final class Router: ObservableObject {
 
     func open(_ link: String, folder: String = Downloader.generalFolder) {
         guard let u = URL(string: link) else { return }
+        // Les liens Discord s'ouvrent dans l'app Discord (connectée), pas dans le navigateur intégré
+        if let host = u.host?.lowercased(), host.hasSuffix("discord.com") || host.hasSuffix("discord.gg") {
+            UIApplication.shared.open(u)
+            return
+        }
         page = WebPage(url: u, folder: folder)
+    }
+
+    /// Lien direct vers un fichier → téléchargement ; page web (MediaFire, Mega…) → navigateur intégré.
+    func downloadOrOpen(_ link: String, folder: String = Downloader.generalFolder) {
+        var t = link.trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.isEmpty { return }
+        if !t.contains("://") { t = t.contains(".") && !t.contains(" ") ? "https://" + t : search(t) }
+        guard let u = URL(string: t) else { return }
+        if Downloader.looksDirect(u) {
+            Downloader.shared.start(t, folder: folder)
+        } else {
+            open(t, folder: folder)
+        }
     }
 }
 

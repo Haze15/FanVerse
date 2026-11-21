@@ -104,6 +104,43 @@ struct HomeView: View {
         }
     }
 
+    var fanFRGuide: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionTitle(title: "Fangames Pokémon en français", subtitle: "\(tffrGames.count) jeux traduits par le Discord TFFR")
+            VStack(alignment: .leading, spacing: 14) {
+                StepRow(number: 1, text: "Ouvre le salon #téléchargements du Discord (bouton ci-dessous) et choisis ton jeu.")
+                StepRow(number: 2, text: "Copie le lien de téléchargement et colle-le dans l'onglet Téléchargements de FanVerse : la page s'ouvre, touche « Télécharger » et suis la barre de progression.")
+                StepRow(number: 3, text: "Touche le .zip dans l'app Fichiers (Sur mon iPhone → FanVerse) pour le décompresser.")
+                StepRow(number: 4, text: "Dans RPGPlayer, importe le dossier du jeu. Si le post a un correctif « NaviaXP / RPGPlayer », remplace le fichier dans le dossier Data.")
+                HStack(spacing: 10) {
+                    Button { Router.shared.open(tffrDownloadsURL) } label: {
+                        Label("Discord", systemImage: "bubble.left.and.bubble.right.fill")
+                            .font(.subheadline.weight(.bold)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .background(Color(red: 0.35, green: 0.40, blue: 0.95))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    if let u = URL(string: rpgPlayerURL) {
+                        Link(destination: u) {
+                            Label("RPGPlayer", systemImage: "play.rectangle.fill")
+                                .font(.subheadline.weight(.bold)).foregroundColor(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                .background(fvGradient)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                Button { gameCategory = frCat; tab = .games } label: {
+                    Label("Voir les jeux traduits", systemImage: "list.bullet")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.borderless)
+            }
+            .fvCard()
+        }
+    }
+
     var installGuide: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionTitle(title: "Installer un .ipa", subtitle: "Pour FanVerse lui-même et les recomps")
@@ -124,6 +161,7 @@ struct HomeView: View {
                     hero
                     stats
                     featured
+                    fanFRGuide
                     installGuide
                     Text("FanVerse ne contient ni ne télécharge aucun jeu commercial : il faut toujours ta propre copie.")
                         .font(.caption).foregroundColor(.secondary)

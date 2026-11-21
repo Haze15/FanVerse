@@ -20,11 +20,12 @@ struct Game: Identifiable {
     /// Jouable directement sur iPhone : ROM hack (via Delta & co), navigateur ou version iOS.
     var onIPhone: Bool {
         platform.contains("ROM hack") || platform.contains("Navigateur") || platform.contains("iOS")
+            || platform.contains("RPG Maker")
     }
 }
 
 // Une ligne = un jeu. Ajoute  dl: "https://lien-direct/jeu.zip"  pour activer Télécharger.
-let allGames: [Game] = [
+let baseGames: [Game] = [
     // Pokémon
     Game(name: "Pokémon Insurgence", category: "Pokémon", platform: "PC",
          desc: "Région Torren, formes Delta, Méga-évolutions et scénario original.",

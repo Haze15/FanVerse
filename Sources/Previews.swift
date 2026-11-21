@@ -31,7 +31,7 @@ final class PreviewStore: ObservableObject {
 
     static func canPreview(_ link: String) -> Bool {
         guard let host = URL(string: link)?.host?.lowercased() else { return false }
-        return !host.contains("duckduckgo")
+        return !host.contains("duckduckgo") && !host.hasSuffix("discord.com")
     }
 
     func load(_ link: String) {

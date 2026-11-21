@@ -110,6 +110,23 @@ final class Downloader: NSObject, ObservableObject {
         return url
     }
 
+    /// Le lien pointe-t-il directement vers un fichier ?
+    static func looksDirect(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        if host.contains("cdn.discordapp.com") || host.contains("media.discordapp.net")
+            || host.contains("dropbox.com") || host.contains("githubusercontent.com")
+            || url.absoluteString.contains("/releases/download/") || url.absoluteString.contains("/raw/")
+            || (host.contains("drive.google.com") && url.absoluteString.contains("/file/d/")) {
+            return true
+        }
+        let pageHosts = ["mediafire.com", "mega.nz", "mega.io", "1fichier.com", "pixeldrain.com",
+                         "gofile.io", "discord.com", "discord.gg", "duckduckgo.com"]
+        if pageHosts.contains(where: { host.hasSuffix($0) }) { return false }
+        let ext = url.pathExtension.lowercased()
+        let pageExts: Set<String> = ["", "html", "htm", "php", "asp", "aspx", "jsp"]
+        return !pageExts.contains(ext)
+    }
+
     static func guessName(_ url: URL) -> String {
         let last = url.lastPathComponent
         return (last.isEmpty || last == "/") ? (url.host ?? "fichier") : last
@@ -239,7 +256,8 @@ extension Downloader: URLSessionDownloadDelegate {
             return
         }
         if let mime = resp?.mimeType, mime.hasPrefix("text/html") {
-            items[i].state = .failed("Ce lien mène à une page web, pas à un fichier. Ouvre-le avec le navigateur de l'app puis touche le bouton Télécharger du site.")
+            items[i].state = .failed("C'était une page web : elle s'ouvre dans le navigateur, touche le bouton de téléchargement du site.")
+            if let src = items[i].source { Router.shared.open(src.absoluteString, folder: items[i].folder) }
             return
         }
         let filename = resp?.suggestedFilename ?? downloadTask.originalRequest?.url?.lastPathComponent ?? "fichier"

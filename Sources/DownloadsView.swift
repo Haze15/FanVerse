@@ -162,10 +162,9 @@ struct DownloadsView: View {
     ]
 
     func download() {
-        if dl.start(link) {
-            link = ""
-            focused = false
-        }
+        Router.shared.downloadOrOpen(link)
+        link = ""
+        focused = false
     }
 
     var urlBar: some View {
@@ -229,7 +228,7 @@ struct DownloadsView: View {
                 Section {
                     urlBar
                 } footer: {
-                    Text("Lien direct vers un fichier (.deltaskin, .zip, .ips, .bps, .ipa…). Les liens Dropbox, Google Drive et GitHub sont convertis tout seuls. Pour un site avec un bouton de téléchargement, utilise le navigateur.")
+                    Text("Colle n'importe quel lien : un fichier direct (.zip, .deltaskin, .ipa, pièce jointe Discord…) se télécharge tout de suite ; une page MediaFire, Mega ou autre s'ouvre dans le navigateur, et le fichier arrive ici quand tu touches « Télécharger » sur le site.")
                 }
 
                 Section("Sites rapides") {
